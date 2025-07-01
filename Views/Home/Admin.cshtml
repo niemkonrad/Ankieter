@@ -1,0 +1,20 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+@model SurveyQuestionsViewModel
+
+  
+@section Scripts {
+    <script>
+        var populateFormUrl = '@Url.Action("PopulateForm", "Home")';
+    </script>
+    <script src="~/js/site.js"></script>  @* Ścieżka do Twojego pliku JS *@
+    <script>
+        var updateUrl = '@Url.Action("Update", "Home")';
+    </script>
+    <script>
+        var deleteUrl = '@Url.Action("Delete", "Home")';
+    </script>
+}
+
+    

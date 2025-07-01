@@ -1,0 +1,87 @@
+﻿@model SurveyQuestionsViewModel
+
+<div class="text-center">
+    <h1 class="display-4">Oto Lista pytań</h1>
+
+
+
+    <div class="row justify-content-center">
+        <form asp-action="Insert" id="form-action" method="post" role="form">
+        
+
+            <!-- Ukryte pola -->
+            <input asp-for="Question.Id" type="hidden" />
+         
+
+            <!-- Walidacja ogólna -->
+            <div asp-validation-summary="All" class="text-danger"></div>
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Is Active?</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            <input asp-for="Question.Name" class="form-control" />
+                            <span asp-validation-for="Question.Name" class="text-danger"></span>
+                        </td>
+                        <td>
+                            <input asp-for="Question.Type" class="form-control" />
+                            <span asp-validation-for="Question.Type" class="text-danger"></span>
+                        </td>
+                        <td>
+                            <input asp-for="Question.IsActive" class="form-check-input" />
+                            <span asp-validation-for="Question.IsActive" class="text-danger"></span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="text-center mt-3">
+                <input type="submit" id="form-button" value="Add Question" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+
+
+    <div class=" row justify-content-center">
+
+        <table class="table">
+            <thread>
+                <tr>
+                    <th scope="col">Id</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">TimeStamp</th>
+                    <th scope="col">Is Active?</th>
+                </tr>
+
+            </thread>
+            <tbody>
+                @foreach (var t in Model.QuestionsList)
+                {
+                    <tr>
+                        <th class="todos-column" scope="row">@t.Id</th>
+                        <th class="todos-column" scope="row">@t.Name</th>
+                        <th class="todos-column">@t.Type</th>
+                        <th class="todos-column">@t.TimeStamp</th>
+                        <th class="todos-column">@t.IsActive</th>
+                        <td class="button-column">
+                            <input type="submit" value="Delete" onClick="deleteQuestion(@t.Id)" />
+                        
+                            <button type="button" onclick="populateForm(@t.Id)">Edit</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+
+
+        </table>
+    </div>
+
+</div>

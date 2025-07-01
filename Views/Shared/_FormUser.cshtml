@@ -1,0 +1,29 @@
+﻿@{
+    ViewData["Title"] = "Survey";
+   
+}
+
+@model SurveyAnswerViewModel
+
+<div class="text-center mt-4">
+    <h2>Pytanie</h2>
+    <div class="mb-3">
+        <strong>@ViewBag.QuestionText</strong>
+    </div>
+
+    <form asp-action="User" method="post" class="mt-3">
+        <input type="hidden" asp-for="Answer.QuestionId" />
+        <input type="hidden" asp-for="Answer.UserId" />
+        <input type="hidden" asp-for="Answer.TimeStamp" />
+        <input type="hidden" asp-for="Answer.SurveyCompleted" />
+        <input type="hidden" name="index" value="@ViewBag.Index" />
+
+        <div class="mb-3">
+            <label class="form-label">Twoja odpowiedź:</label>
+            <input asp-for="Answer.Answer" class="form-control" placeholder="Wpisz odpowiedź..." />
+            <span asp-validation-for="Answer.Answer" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Dalej</button>
+    </form>
+</div>
