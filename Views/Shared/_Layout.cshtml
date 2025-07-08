@@ -37,6 +37,55 @@
         </main>
     </div>
 
+
+    @{
+        var currentAction = ViewContext.RouteData.Values["action"]?.ToString()?.ToLower();
+        var isAdminSection = currentAction == "admin" || currentAction == "admin2" || currentAction == "admin3";
+    }
+    @if (isAdminSection)
+    {
+        <div class="admin-navbar" style="margin-bottom:20px;">
+            <a href="@Url.Action("Admin", "Home")"
+            class="btn @(currentAction == "admin" ? "btn-secondary disabled" : "btn-primary")"
+            @(currentAction == "admin" ? "tabindex=\"-1\" aria-disabled=\"true\"" : "")>
+                Admin
+            </a>
+
+            <a href="@Url.Action("Admin2", "Home")"
+            class="btn @(currentAction == "admin2" ? "btn-secondary disabled" : "btn-primary")"
+            @(currentAction == "admin2" ? "tabindex=\"-1\" aria-disabled=\"true\"" : "")>
+                Admin2
+            </a>
+
+            <a href="@Url.Action("Admin3", "Home")"
+            class="btn @(currentAction == "admin3" ? "btn-secondary disabled" : "btn-primary")"
+            @(currentAction == "admin3" ? "tabindex=\"-1\" aria-disabled=\"true\"" : "")>
+                Admin3
+            </a>
+        </div>
+
+        <style>
+            .btn {
+            padding: 8px 16px;
+            margin-right: 8px;
+            text-decoration: none;
+            color: white;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        .btn-primary {
+            background-color: #007bff;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            cursor: default;
+            pointer-events: none; /* wyłącza kliknięcie */
+        }
+        .btn.disabled {
+            opacity: 0.65;
+        }
+    </style>
+    }
     @{
         var controller = ViewContext.RouteData.Values["controller"]?.ToString();
         var action = ViewContext.RouteData.Values["action"]?.ToString();
@@ -47,8 +96,12 @@
         {
             @await Html.PartialAsync("_Form")
         }
+        @if (action == "Admin2")
+        {
+            @await Html.PartialAsync("_FormAnswers")
+        }
 
-        @if (controller == "Home" && action == "User" && !(ViewBag.SurveyFinished ?? false)) // chcesz mieć pewność, że to kontroler "User"
+        @if (controller == "Home" && action == "User" && !(ViewBag.SurveyFinished ?? false)) 
         {
             @await Html.PartialAsync("_FormUser")
         }

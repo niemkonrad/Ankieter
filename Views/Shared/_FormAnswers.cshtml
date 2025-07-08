@@ -1,0 +1,79 @@
+﻿@model SurveyAnswerWithUserViewModel
+
+<div class="text-center">
+    <h1 class="display-4">Oto Lista odpowiedzi</h1>
+
+
+
+    <form asp-action="Admin2" method="get">
+        <div class="form-group">
+            <label for="filtr">Wybierz filtr:</label>
+            <select name="filtr" class="form-control" id="filtr">
+                <option value="QuestionId">Pytanie (QuestionId)</option>
+                <option value="UserId">Użytkownik (UserId)</option>
+                <option value="Age">Wiek</option>
+                <option value="Sex">Płeć</option>
+                <option value="Localization">Lokalizacja</option>
+            </select>
+        </div>
+
+        <div class="form-group mt-2">
+            <label for="value">Wartość:</label>
+            <input type="text" name="value" class="form-control" id="value" />
+        </div>
+
+        <button type="submit" class="btn btn-primary mt-3">Filtruj</button>
+    </form>
+
+
+    <div class=" row justify-content-center">
+        @if (Model.AnswersWithUserList == null)
+        {
+            <p>Brak danych — lista jest null</p>
+        }
+        else if (!Model.AnswersWithUserList.Any())
+        {
+            <p>Lista pusta — brak wyników filtracji</p>
+        }
+        else
+        {
+            <p>Znaleziono @Model.AnswersWithUserList.Count użytkownikow</p>
+        }
+
+        <table class="table">
+            <thread>
+                <tr>
+                    <th scope="col">Id</th>
+                    <th scope="col">Name</th>
+                    
+                    <th scope="col">TimeStamp</th>
+                   
+                </tr>
+
+            </thread>
+            <tbody>
+                @foreach (var userAnswers in Model.AnswersWithUserList)
+                {
+                    <tr>
+                        <td colspan="5">
+                            <strong>User:</strong> @userAnswers.User.Name, @userAnswers.User.Age Lat, @userAnswers.User.Localization Lokalizacja
+                        
+                        </td>
+                    </tr>
+
+                    @foreach (var answer in userAnswers.AnswersList)
+                    {
+                        <tr>
+                            <td>@answer.QuestionId</td>
+                            <td>@answer.Answer</td>
+                            <td>@answer.TimeStamp</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+
+
+        </table>
+    </div>
+
+</div>

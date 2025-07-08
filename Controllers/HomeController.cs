@@ -53,20 +53,27 @@ public class HomeController : Controller
     public IActionResult Admin()
     {
         var surveyQuestionsViewModel = GetAllQuestions();
+       
         return View(surveyQuestionsViewModel);
     }
+    public IActionResult Admin2()
+    {
+        
+        var surveyAnswersWithUsers = GetFiltredAnswers("", "");
+        return View("Admin2",surveyAnswersWithUsers);
+    }
 
-    private static List<SurveyAnswer> _userAnswers = new();
+    private static List<SurveyAnswer> userAnswers = new();
     public IActionResult User(int index =0)
     {
         var questions = GetAllQuestions();
 
         if (index >= questions.QuestionsList.Count)
         {
-            MarkAllAnswersAsCompleted(_userAnswers);
+            MarkAllAnswersAsCompleted(userAnswers);
             // Zapisz wszystkie odpowiedzi do bazy
-            SaveAnswersToDatabase(_userAnswers);
-            _userAnswers.Clear(); // Czyœæ po zapisie
+            SaveAnswersToDatabase(userAnswers);
+            userAnswers.Clear(); // Czyœæ po zapisie
             ViewBag.SurveyFinished = true;
             return View("UserEnd");
             
@@ -94,7 +101,7 @@ public class HomeController : Controller
     [HttpPost]
     public IActionResult User(SurveyAnswerViewModel model, int index)
     {
-        _userAnswers.Add(model.Answer);
+        userAnswers.Add(model.Answer);
         return RedirectToAction("User", new { index = index + 1 });
     }
 
@@ -160,7 +167,7 @@ public class HomeController : Controller
 
     internal SurveyQuestionsViewModel GetAllQuestions()
     {
-        Console.WriteLine("showall");
+        
         List<SurveyQuestion> questionsList = new();
         using (SqliteConnection con =
                 new SqliteConnection("Data Source=Survey.sqlite"))
@@ -201,6 +208,163 @@ public class HomeController : Controller
         return new SurveyQuestionsViewModel { QuestionsList = questionsList };
 
     }
+
+
+    internal SurveyAnswerWithUserViewModel GetFiltredAnswers(string filtr, string value)
+    {
+        int prevUserId = -1;
+        SurveyAnswerWithUser existingAnswerWithUser = new SurveyAnswerWithUser();
+        List<SurveyAnswerWithUser> allAnswersWithUser = new();
+        
+        using (SqliteConnection con =
+                new SqliteConnection("Data Source=Survey.sqlite"))
+        {
+
+            using (var tableCmd = con.CreateCommand())
+            {
+
+                con.Open();
+                string whereClause = (string.IsNullOrEmpty(filtr) || string.IsNullOrEmpty(value))
+      ? ""
+      : filtr.ToLower() switch
+      {
+          "questionid" => "WHERE sa.QuestionId = @value",
+          "userid" => "WHERE sa.UserId = @value",
+          "age" => "WHERE su.Age = @value",
+          "sex" => "WHERE su.Sex = @value",
+          "localization" => "WHERE su.Localization = @value",
+          _ => ""
+      };
+                tableCmd.CommandText = $@"
+                SELECT sa.Id, sa.UserId, sa.QuestionId, sa.Answer, sa.TimeStamp, sa.SurveyCompleted,
+                       su.Age, su.Sex, su.Localization, su.Name, su.Education
+                FROM surveyAnswers sa
+                JOIN surveyUsers su ON sa.UserId = su.Id
+                {whereClause}";
+                if (!string.IsNullOrEmpty(whereClause))
+                {
+                    tableCmd.Parameters.AddWithValue("@value", value);
+                }
+               
+
+                using (var reader = tableCmd.ExecuteReader())
+                {
+                    Console.WriteLine("SQL: " + tableCmd.CommandText);
+                    Console.WriteLine("Value: " + value);
+                    while (reader.Read())
+                    {
+                        var answerWithUser = new SurveyAnswerWithUser
+                        {
+                            Answer = new SurveyAnswer
+                            {
+                                Id = reader.GetInt32(0),
+                                
+                                Answer = reader.IsDBNull(3) ? null : reader.GetString(3),
+                                SurveyCompleted = reader.GetBoolean(5),
+                                TimeStamp = reader.GetDateTime(4),
+                                QuestionId = reader.GetInt32(2)
+                            },
+                            User = new SurveyUser
+                            { 
+
+                                Id = reader.GetInt32(1),
+                                Education = reader.GetInt32(10),
+                                Name = reader.GetString(9),
+                                Age = reader.GetInt32(6),
+                                Sex = reader.GetChar(7),
+                                Localization = reader.GetString(8)
+                            }
+                            
+                        };
+                        Console.WriteLine(answerWithUser.Answer.Id);
+                        if (prevUserId == answerWithUser.User.Id)
+                        {
+                            // Jeœli u¿ytkownik ju¿ istnieje, dodaj tylko odpowiedŸ
+                            existingAnswerWithUser.AnswersList.Add(answerWithUser.Answer);
+                        }
+                        else
+                        {
+                            if (existingAnswerWithUser.User != null && !allAnswersWithUser.Contains(existingAnswerWithUser))
+                            {
+                                allAnswersWithUser.Add(existingAnswerWithUser);
+                            }
+
+                            existingAnswerWithUser = new SurveyAnswerWithUser
+                            {
+                                User = answerWithUser.User,
+                                AnswersList = new List<SurveyAnswer> { answerWithUser.Answer }
+
+                            };
+                           
+
+                            // Jeœli to nowy u¿ytkownik, dodaj go do listy
+                            prevUserId = answerWithUser.User.Id;
+                            
+                        }
+                            
+                    }
+
+                    if (existingAnswerWithUser.User != null)
+                    {
+                        allAnswersWithUser.Add(existingAnswerWithUser);
+                    }
+
+                }
+
+            }
+        }
+
+        return new SurveyAnswerWithUserViewModel { AnswersWithUserList = allAnswersWithUser };
+
+    }
+
+  
+
+    internal List<SurveyUser> GetFilteredUsers(string filtr, string wartosc)
+    {
+        List<SurveyUser> users = new();
+
+        using (var con = new SqliteConnection("Data Source=Survey.sqlite"))
+        {
+            using (var tableCmd = con.CreateCommand())
+            {
+                con.Open();
+
+                string whereClause = filtr.ToLower() switch
+                {
+                    "Age" => "WHERE Age = @value",
+                    "Sex" => "WHERE Sex = @value",
+                    "Localization" => "WHERE Localization = @value",
+                    _ => ""
+                };
+
+                if (string.IsNullOrEmpty(whereClause))
+                    return users;
+
+                tableCmd.CommandText = $"SELECT Id, Localization, Age, Sex, Education, Name FROM surveyUsers {whereClause}";
+                tableCmd.Parameters.AddWithValue("@value", wartosc);
+
+                using (var reader = tableCmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        users.Add(new SurveyUser
+                        {
+                            Id = reader.GetInt32(0),
+                            Localization = reader.GetString(1),
+                            Age = reader.GetInt32(2),
+                            Sex = reader.GetChar(3),
+                            Education = reader.GetInt32(4),
+                            Name = reader.GetString(5)
+                        });
+                    }
+                }
+            }
+        }
+
+        return users;
+    }
+
 
     public RedirectResult Insert(SurveyQuestionsViewModel surveyQuestionModel)
     {
@@ -342,6 +506,12 @@ public class HomeController : Controller
             text = question.Name,   // u¿yj w³aœciwoœci, która jest pytaniem
             
         });
+    }
+    [HttpGet]
+    public IActionResult FiltredAnswers(string filtr, string value)
+    {
+        var model = GetFiltredAnswers(filtr, value);
+        return View();
     }
 
 }

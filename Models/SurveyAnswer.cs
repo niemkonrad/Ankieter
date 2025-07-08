@@ -15,6 +15,8 @@ namespace Ankieter.Models
 
         public DateTime TimeStamp { get; set; } 
         public Boolean SurveyCompleted { get; set; } = true; // 0 - Not completed, 1 - Completed 
+
+        
     }
 
     
