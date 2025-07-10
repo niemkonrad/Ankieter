@@ -16,11 +16,34 @@
         <input type="hidden" asp-for="Answer.UserId" />
         <input type="hidden" asp-for="Answer.TimeStamp" />
         <input type="hidden" asp-for="Answer.SurveyCompleted" />
+        <input type="hidden" name="QuestionType" value="@ViewBag.QuestionType" />
         <input type="hidden" name="index" value="@ViewBag.Index" />
 
         <div class="mb-3">
             <label class="form-label">Twoja odpowiedź:</label>
-            <input asp-for="Answer.Answer" class="form-control" placeholder="Wpisz odpowiedź..." />
+
+            @if (ViewBag.QuestionType == "text")
+            {
+                <input asp-for="Answer.Answer" class="form-control" placeholder="Wpisz odpowiedź..." />
+            }
+            else if (ViewBag.QuestionType == "scale")
+            {
+                <input asp-for="Answer.Answer" type="range" min="1" max="10" class="form-range"
+                       oninput="document.getElementById('scaleVal').innerText = this.value" />
+                <div>Ocena: <span id="scaleVal">5</span></div>
+            }
+            else if (ViewBag.QuestionType == "multi")
+            {
+                var options = (List<string>)ViewBag.Options ?? new List<string> { "Opcja A", "Opcja B", "Opcja C", "Opcja D" };
+                for (int i = 0; i < options.Count; i++)
+                {
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="SelectedOptions" value="@options[i]" id="opt_@i" />
+                        <label class="form-check-label" for="opt_@i">@options[i]</label>
+                    </div>
+                }
+            }
+
             <span asp-validation-for="Answer.Answer" class="text-danger"></span>
         </div>
 

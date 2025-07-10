@@ -14,11 +14,10 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 // Do zrobienia :
-// - przed pierwszym pytaniem wywietl pytania dotyczace danych demograficznych wraz z walidacja
-// - utworz usera który wykonuje ankiete i zapisz go w bazie danych
+// - popraw walidacje dotyczaca danych demograficznych 
 // - ekran logowania dla admina
-// - wyswietlaj odpowiedni sposob odpowiedzi dla danego typu pytania
-// - u¿ywaj tylko pytañ "isActive" w ankiecie
+// - wyswietlaj odpowiedni sposob odpowiedzi dla danego typu pytania ( zmien sposob przechowywywania pytania w bazie dla multichoice - dodaj 4 opcje )
+
 // - przygotuj gotowe szablony pytañ - automatyczne wybór odpowiedniego zestawu pytañ (admin)
 // - przygotuj ekran wyswietlania odpowiedzi na pytania wraz z filtrem (admin)
 // - przygotuj ekran ukazujacy dane demograficzne respondentów (admin)
@@ -29,8 +28,8 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 // - Modu³ A/B testów – testuj ró¿ne wersje pytañ
 // - Obsluga wielu jezykow
 
-// nie dziala filtrownie odpowiedzi
-// dodawanie typu pytania
+// nie dziala ankieta gdy uzywamy "wstecz" - obie odpowiedzi sa zapisywane.
+
 
 
 
@@ -47,8 +46,8 @@ public class HomeController : Controller
 
     public IActionResult Index()
     {
-        var surveyQuestionsViewModel = GetAllQuestions();
-        return View(surveyQuestionsViewModel);
+        
+        return View();
     }
 
     public IActionResult Privacy()
@@ -57,7 +56,8 @@ public class HomeController : Controller
     }
     public IActionResult Admin()
     {
-        var surveyQuestionsViewModel = GetAllQuestions();
+        bool onlyActive = false;
+        var surveyQuestionsViewModel = GetAllQuestions(onlyActive);
        
         return View(surveyQuestionsViewModel);
     }
@@ -124,14 +124,15 @@ public class HomeController : Controller
 
     public IActionResult User(int userId ,int index =0)
     {
-        var questions = GetAllQuestions();
+        bool onlyActive = true;
+        var questions = GetAllQuestions(onlyActive);
 
         if (index >= questions.QuestionsList.Count)
         {
             MarkAllAnswersAsCompleted(userAnswers);
             // Zapisz wszystkie odpowiedzi do bazy
             SaveAnswersToDatabase(userAnswers);
-            userAnswers.Clear(); // Czyœæ po zapisie
+            userAnswers.Clear(); 
             ViewBag.SurveyFinished = true;
             return View("UserEnd");
             
@@ -146,10 +147,26 @@ public class HomeController : Controller
             {
                 QuestionId = question.Id,
                 TimeStamp = DateTime.Now,
-                
-                UserId = userId // tymczasowo, docelowo pobieraj z sesji/logowania
+                UserId = userId 
             }
         };
+        switch (question.Type)
+        {
+            case 1: // multi
+                ViewBag.QuestionType = "multi";
+                ViewBag.Options = new List<string> { "Opcja A", "Opcja B", "Opcja C", "Opcja D" };
+                break;
+            case 2: // scale
+                ViewBag.QuestionType = "scale";
+                break;
+            case 3: // text
+                ViewBag.QuestionType = "text";
+                break;
+            default:
+                ViewBag.QuestionType = "unknown";
+                break;
+        }
+       
         ViewBag.QuestionText = question.Name;
         ViewBag.Index = index;
         return View("User", viewModel);
@@ -159,8 +176,9 @@ public class HomeController : Controller
     }
 
     [HttpPost]
-    public IActionResult User(SurveyAnswerViewModel model, int index)
+    public IActionResult User(SurveyAnswerViewModel model, int index, string[] SelectedOptions, string QuestionType)
     {
+
         if (index == 0)
         {
             TempData["UserId"] = model.Answer.UserId;
@@ -182,7 +200,27 @@ public class HomeController : Controller
         // Potrzebne, ¿eby TempData przetrwa³o na kolejn¹ akcjê
         TempData.Keep("UserId");
 
+        string questionType = TempData["QuestionType"] as string;
+        TempData.Keep("QuestionType");
+
+
+        if (QuestionType == "multi" && SelectedOptions != null && SelectedOptions.Any())
+        {
+            model.Answer.Answer = string.Join(";", SelectedOptions);
+        }
+        else if (QuestionType == "scale")
+        {
+            // Skala  
+        }
+        else if (QuestionType == "text")
+        {
+            // Standardowy input tekstowy
+            
+        }
+
         userAnswers.Add(model.Answer);
+
+
         Console.WriteLine("index= ",model.Answer.UserId);
         return RedirectToAction("User", new { index = index + 1 });
     }
@@ -247,7 +285,7 @@ public class HomeController : Controller
     }
 
 
-    internal SurveyQuestionsViewModel GetAllQuestions()
+    internal SurveyQuestionsViewModel GetAllQuestions(bool onlyActive)
     {
         
         List<SurveyQuestion> questionsList = new();
@@ -259,30 +297,33 @@ public class HomeController : Controller
             {
 
                 con.Open();
+                if (onlyActive == true)
+                tableCmd.CommandText = "SELECT * FROM surveyQuestions WHERE IsActive = 1";
+                else
                 tableCmd.CommandText = "SELECT * FROM surveyQuestions";
 
                 using (var reader = tableCmd.ExecuteReader())
-                {
-                    if (reader.HasRows)
                     {
-                        while (reader.Read())
+                        if (reader.HasRows)
                         {
-
-                            SurveyQuestion surveyQuestion = new SurveyQuestion
+                            while (reader.Read())
                             {
-                                Id = reader.GetInt32(0),
-                                Name = reader.GetString(1),
-                                Type = reader.GetInt32(2),
-                                TimeStamp = reader.GetDateTime(3),
-                                IsActive = reader.GetBoolean(4)
-                            };
-                            questionsList.Add(surveyQuestion);
+
+                                SurveyQuestion surveyQuestion = new SurveyQuestion
+                                {
+                                    Id = reader.GetInt32(0),
+                                    Name = reader.GetString(1),
+                                    Type = reader.GetInt32(2),
+                                    TimeStamp = reader.GetDateTime(3),
+                                    IsActive = reader.GetBoolean(4)
+                                };
+                                questionsList.Add(surveyQuestion);
+                            }
+
                         }
 
+                        // return new SurveyQuestionsViewModel { QuestionsList = questionsList };
                     }
-
-                    // return new SurveyQuestionsViewModel { QuestionsList = questionsList };
-                }
 
             }
 
@@ -513,11 +554,12 @@ public class HomeController : Controller
             {
 
                 con.Open();
-                tableCmd.CommandText = @"UPDATE surveyQuestions SET name = @name, isActive = @isActive, timestamp = @timeStamp WHERE Id = @id";
+                tableCmd.CommandText = @"UPDATE surveyQuestions SET name = @name, type = @type, isActive = @isActive, timestamp = @timeStamp WHERE Id = @id";
                 tableCmd.Parameters.AddWithValue("@name", surveyQuestionModel.Question.Name);
                 tableCmd.Parameters.AddWithValue("@isActive", surveyQuestionModel.Question.IsActive);
                 tableCmd.Parameters.AddWithValue("@timeStamp", DateTime.Now);
                 tableCmd.Parameters.AddWithValue("@id", surveyQuestionModel.Question.Id);
+                tableCmd.Parameters.AddWithValue("@type", surveyQuestionModel.Question.Type);
                 try
                 {
 
@@ -619,17 +661,18 @@ public class HomeController : Controller
     [HttpGet]
     public IActionResult GetQuestion(int index)
     {
-        var surveyQuestionModel = GetAllQuestions();
+        bool onlyActive = false;
+        var surveyQuestionModel = GetAllQuestions(onlyActive);
 
         if (index < 0 || index >= surveyQuestionModel.QuestionsList.Count)
             return Json(null);
 
         var question = surveyQuestionModel.QuestionsList[index];
 
-        // Dostosuj zwracany JSON, jeœli pytanie ma np. inne pola
+        
         return Json(new
         {
-            text = question.Name,   // u¿yj w³aœciwoœci, która jest pytaniem
+            text = question.Name,   
             
         });
     }
