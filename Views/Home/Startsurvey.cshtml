@@ -1,0 +1,40 @@
+﻿@model StartSurveyViewModel
+@{
+    ViewData["Title"] = "Start ankiety";
+}
+
+<div class="container mt-4">
+    <h2>Rozpocznij ankietę</h2>
+
+    <form asp-action="StartSurvey" method="post">
+        <div class="mb-3">
+            <label class="form-label">Imię</label>
+            <input asp-for="User.Name" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Wiek</label>
+            <input asp-for="User.Age" type="number" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Lokalizacja</label>
+            <input asp-for="User.Localization" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Płeć</label>
+            <select asp-for="User.Sex" class="form-control">
+                <option value="M">Mężczyzna</option>
+                <option value="K">Kobieta</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Wykształcenie</label>
+            <select asp-for="User.Education" class="form-control">
+                <option value="1">Podstawowe</option>
+                <option value="2">Średnie</option>
+                <option value="3">Wyższe</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Rozpocznij</button>
+    </form>
+</div>

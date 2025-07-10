@@ -1,15 +1,17 @@
 using Ankieter.Models;
 using Ankieter.Models.ViewModels;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Configuration.UserSecrets;
+using System;
+using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Globalization;
+using System.Security.AccessControl;
 using System.Xml.Linq;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 using static System.Runtime.InteropServices.JavaScript.JSType;
-using System.Data.SqlClient;
-using Microsoft.AspNetCore.Components;
-using System.Security.AccessControl;
 
 // Do zrobienia :
 // - przed pierwszym pytaniem wywietl pytania dotyczace danych demograficznych wraz z walidacja
@@ -26,6 +28,9 @@ using System.Security.AccessControl;
 // - Tryb testowy (demo) dla administratora
 // - Modu³ A/B testów – testuj ró¿ne wersje pytañ
 // - Obsluga wielu jezykow
+
+// nie dziala filtrownie odpowiedzi
+// dodawanie typu pytania
 
 
 
@@ -56,15 +61,68 @@ public class HomeController : Controller
        
         return View(surveyQuestionsViewModel);
     }
-    public IActionResult Admin2()
+    public IActionResult Admin2(string filter, string value)
     {
         
-        var surveyAnswersWithUsers = GetFiltredAnswers("", "");
+        var surveyAnswersWithUsers = GetFilteredAnswers(filter, value);
         return View("Admin2",surveyAnswersWithUsers);
+
+    }
+    public IActionResult Admin3(string filter, string value)
+    {
+        
+        var surveyUsers = GetFilteredUsers(filter, value);
+            return View("Admin3", surveyUsers);
+      
+    }
+
+
+
+    [HttpGet]
+    public IActionResult StartSurvey()
+    {
+        return View(new StartSurveyViewModel());
+    }
+
+    [HttpPost]
+    public IActionResult StartSurvey(StartSurveyViewModel model)
+    {
+        if (!ModelState.IsValid)
+            return View(model);
+
+        // Zapisz u¿ytkownika do bazy
+        int userId = SaveUserToDatabase(model.User);
+
+        // Przekieruj do pierwszego pytania, przekazuj¹c ID u¿ytkownika
+        return RedirectToAction("User", new { userId = userId, index = 0 });
+    }
+
+    private int SaveUserToDatabase(SurveyUser user)
+    {
+        using var con = new SqliteConnection("Data Source=Survey.sqlite");
+        con.Open();
+
+        var cmd = con.CreateCommand();
+        cmd.CommandText = @"
+        INSERT INTO surveyUsers (Name, Age, Localization, Sex, Education)
+        VALUES (@name, @age, @loc, @sex, @edu);
+        SELECT last_insert_rowid();
+    ";
+        cmd.Parameters.AddWithValue("@name", user.Name);
+        cmd.Parameters.AddWithValue("@age", user.Age);
+        cmd.Parameters.AddWithValue("@loc", user.Localization);
+        cmd.Parameters.AddWithValue("@sex", user.Sex);
+        cmd.Parameters.AddWithValue("@edu", user.Education);
+        var result = cmd.ExecuteScalar();
+        int userId = Convert.ToInt32(result);
+
+        return userId;
     }
 
     private static List<SurveyAnswer> userAnswers = new();
-    public IActionResult User(int index =0)
+
+
+    public IActionResult User(int userId ,int index =0)
     {
         var questions = GetAllQuestions();
 
@@ -80,14 +138,16 @@ public class HomeController : Controller
         }
 
         var question = questions.QuestionsList[index];
-
+        Console.WriteLine("userid= ", userId);
         var viewModel = new SurveyAnswerViewModel
         {
+            
             Answer = new SurveyAnswer
             {
                 QuestionId = question.Id,
                 TimeStamp = DateTime.Now,
-                UserId = 1 // tymczasowo, docelowo pobieraj z sesji/logowania
+                
+                UserId = userId // tymczasowo, docelowo pobieraj z sesji/logowania
             }
         };
         ViewBag.QuestionText = question.Name;
@@ -101,7 +161,29 @@ public class HomeController : Controller
     [HttpPost]
     public IActionResult User(SurveyAnswerViewModel model, int index)
     {
+        if (index == 0)
+        {
+            TempData["UserId"] = model.Answer.UserId;
+        }
+        else
+        {
+            // Przy kolejnych pytaniach – pobierz userId z TempData
+            if (TempData["UserId"] != null)
+            {
+                model.Answer.UserId = (int)TempData["UserId"];
+            }
+            else
+            {
+                // Awaryjnie – brak userId, mo¿esz przekierowaæ do b³êdu albo logowania
+                return RedirectToAction("Error");
+            }
+        }
+
+        // Potrzebne, ¿eby TempData przetrwa³o na kolejn¹ akcjê
+        TempData.Keep("UserId");
+
         userAnswers.Add(model.Answer);
+        Console.WriteLine("index= ",model.Answer.UserId);
         return RedirectToAction("User", new { index = index + 1 });
     }
 
@@ -210,7 +292,7 @@ public class HomeController : Controller
     }
 
 
-    internal SurveyAnswerWithUserViewModel GetFiltredAnswers(string filtr, string value)
+    internal SurveyAnswerWithUserViewModel GetFilteredAnswers(string filter, string value)
     {
         int prevUserId = -1;
         SurveyAnswerWithUser existingAnswerWithUser = new SurveyAnswerWithUser();
@@ -224,9 +306,9 @@ public class HomeController : Controller
             {
 
                 con.Open();
-                string whereClause = (string.IsNullOrEmpty(filtr) || string.IsNullOrEmpty(value))
+                string whereClause = (string.IsNullOrEmpty(filter) || string.IsNullOrEmpty(value))
       ? ""
-      : filtr.ToLower() switch
+      : filter.ToLower() switch
       {
           "questionid" => "WHERE sa.QuestionId = @value",
           "userid" => "WHERE sa.UserId = @value",
@@ -310,6 +392,18 @@ public class HomeController : Controller
                     }
 
                 }
+                var questionTexts = GetAllQuestionTexts();
+
+                foreach (var userAnswers in allAnswersWithUser)
+                {
+                    foreach (var answer in userAnswers.AnswersList)
+                    {
+                        if (questionTexts.TryGetValue(answer.QuestionId, out var questionText))
+                        {
+                            answer.QuestionText = questionText;
+                        }
+                    }
+                }
 
             }
         }
@@ -318,9 +412,11 @@ public class HomeController : Controller
 
     }
 
+
+
   
 
-    internal List<SurveyUser> GetFilteredUsers(string filtr, string wartosc)
+    internal SurveyUsersViewModel GetFilteredUsers(string filter, string value)
     {
         List<SurveyUser> users = new();
 
@@ -330,19 +426,26 @@ public class HomeController : Controller
             {
                 con.Open();
 
-                string whereClause = filtr.ToLower() switch
-                {
-                    "Age" => "WHERE Age = @value",
-                    "Sex" => "WHERE Sex = @value",
-                    "Localization" => "WHERE Localization = @value",
-                    _ => ""
-                };
+                Console.WriteLine($"filter: {filter}, value: {value}");
+                string whereClause = (string.IsNullOrEmpty(filter) || string.IsNullOrEmpty(value))
+                            ? ""
+                        : filter.ToLower() switch
+                        {
+                            "userid" => "WHERE Id = @value",
+                            "age" => "WHERE Age = @value",
+                        "sex" => "WHERE Sex = @value",
+                        "localization" => "WHERE Localization = @value",
+                        _ => ""
+                    };
+                
 
-                if (string.IsNullOrEmpty(whereClause))
-                    return users;
 
                 tableCmd.CommandText = $"SELECT Id, Localization, Age, Sex, Education, Name FROM surveyUsers {whereClause}";
-                tableCmd.Parameters.AddWithValue("@value", wartosc);
+                if (!string.IsNullOrEmpty(whereClause))
+                {
+                    tableCmd.Parameters.AddWithValue("@value", value);
+                }
+                
 
                 using (var reader = tableCmd.ExecuteReader())
                 {
@@ -362,7 +465,7 @@ public class HomeController : Controller
             }
         }
 
-        return users;
+        return new SurveyUsersViewModel { UsersList = users };
     }
 
 
@@ -471,7 +574,7 @@ public class HomeController : Controller
                         surveyQuestion.Name = reader.GetString(1);
                         surveyQuestion.Type = reader.GetInt32(2);
                         surveyQuestion.TimeStamp = reader.GetDateTime(3);
-                        surveyQuestion.IsActive = reader.GetInt32(4) == 1;
+                        surveyQuestion.IsActive = reader.GetBoolean(4) == true;
 
                     }
 
@@ -482,6 +585,29 @@ public class HomeController : Controller
         }
 
     }
+
+
+    public Dictionary<int, string> GetAllQuestionTexts()
+    {
+        var result = new Dictionary<int, string>();
+        using (var connection = new SqliteConnection("Data Source = Survey.sqlite"))
+        {
+            connection.Open();
+            var command = connection.CreateCommand();
+            command.CommandText = "SELECT Id, Name FROM surveyQuestions";
+
+            using (var reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    result[reader.GetInt32(0)] = reader.GetString(1);
+                }
+            }
+        }
+        return result;
+    }
+
+
     [HttpGet]
     public JsonResult PopulateForm(int id)
     {
@@ -508,9 +634,16 @@ public class HomeController : Controller
         });
     }
     [HttpGet]
-    public IActionResult FiltredAnswers(string filtr, string value)
+    public IActionResult FilteredAnswers(string filter, string value)
     {
-        var model = GetFiltredAnswers(filtr, value);
+        var model = GetFilteredAnswers(filter, value);
+        return View();
+    }
+    [HttpGet]
+    public IActionResult FilteredUsers(string filter, string value)
+    {
+
+        var model = GetFilteredUsers(filter, value);
         return View();
     }
 

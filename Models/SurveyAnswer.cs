@@ -13,6 +13,7 @@ namespace Ankieter.Models
         public int QuestionId { get; set; }
         public string? Answer { get; set; } // For Text and Open Text and numeric answers - 
 
+        public string? QuestionText { get; set; } 
         public DateTime TimeStamp { get; set; } 
         public Boolean SurveyCompleted { get; set; } = true; // 0 - Not completed, 1 - Completed 
 

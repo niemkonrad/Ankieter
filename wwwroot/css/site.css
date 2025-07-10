@@ -29,3 +29,12 @@ body {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
 }
+.user-row td {
+    background-color: #ccffcc; /* Jasna zieleñ */
+    font-weight: bold;
+    font-size: 16px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); /* Lekki cieñ */
+    border-bottom: 2px solid #a3e6a3; /* Dodatkowe oddzielenie */
+}

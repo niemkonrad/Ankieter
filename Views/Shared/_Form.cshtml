@@ -1,9 +1,9 @@
 ﻿@model SurveyQuestionsViewModel
 
 <div class="text-center">
-    <h1 class="display-4">Oto Lista pytań</h1>
+    <h1 class="display-4">Na tej stronie zarządzasz pytaniami ankiety.</h1>
+    <h1 class="display-4"> Możesz je dodać,usunąć lub edytować.</h1>
 
-    <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Admin2">Odpowiedzi</a>
 
     <div class="row justify-content-center">
         <form asp-action="Insert" id="form-action" method="post" role="form">
@@ -19,9 +19,9 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>Is Active?</th>
+                        <th>Treść Pytania</th>
+                        <th>Typ Pytania</th>
+                        <th>Jest aktywne?</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -43,22 +43,22 @@
             </table>
 
             <div class="text-center mt-3">
-                <input type="submit" id="form-button" value="Add Question" class="btn btn-primary" />
+                <input type="submit" id="form-button" value="Dodaj Pytanie" class="btn btn-primary" />
             </div>
         </form>
     </div>
-
+    <h1 class="display-4">Lista pytań</h1>
 
     <div class=" row justify-content-center">
 
         <table class="table">
             <thread>
                 <tr>
-                    <th scope="col">Id</th>
-                    <th scope="col">Name</th>
-                    <th scope="col">Type</th>
+                    <th scope="col">Numer Pytania</th>
+                    <th scope="col">Treść Pytania</th>
+                    <th scope="col">Typ</th>
                     <th scope="col">TimeStamp</th>
-                    <th scope="col">Is Active?</th>
+                    <th scope="col">Jest Aktywne?</th>
                 </tr>
 
             </thread>
@@ -72,9 +72,9 @@
                         <th class="todos-column">@t.TimeStamp</th>
                         <th class="todos-column">@t.IsActive</th>
                         <td class="button-column">
-                            <input type="submit" value="Delete" onClick="deleteQuestion(@t.Id)" />
+                            <input type="submit" value="Usuń" onClick="deleteQuestion(@t.Id)" />
                         
-                            <button type="button" onclick="populateForm(@t.Id)">Edit</button>
+                            <button type="button" onclick="populateForm(@t.Id)">Edytuj</button>
                         </td>
                     </tr>
                 }

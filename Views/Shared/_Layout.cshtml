@@ -48,19 +48,19 @@
             <a href="@Url.Action("Admin", "Home")"
             class="btn @(currentAction == "admin" ? "btn-secondary disabled" : "btn-primary")"
             @(currentAction == "admin" ? "tabindex=\"-1\" aria-disabled=\"true\"" : "")>
-                Admin
+                Pytania
             </a>
 
             <a href="@Url.Action("Admin2", "Home")"
             class="btn @(currentAction == "admin2" ? "btn-secondary disabled" : "btn-primary")"
             @(currentAction == "admin2" ? "tabindex=\"-1\" aria-disabled=\"true\"" : "")>
-                Admin2
+                Odpowiedzi
             </a>
 
             <a href="@Url.Action("Admin3", "Home")"
             class="btn @(currentAction == "admin3" ? "btn-secondary disabled" : "btn-primary")"
             @(currentAction == "admin3" ? "tabindex=\"-1\" aria-disabled=\"true\"" : "")>
-                Admin3
+                Użytkownicy
             </a>
         </div>
 
@@ -99,6 +99,10 @@
         @if (action == "Admin2")
         {
             @await Html.PartialAsync("_FormAnswers")
+        }
+        @if (action == "Admin3")
+        {
+            @await Html.PartialAsync("_FormUsers")
         }
 
         @if (controller == "Home" && action == "User" && !(ViewBag.SurveyFinished ?? false)) 

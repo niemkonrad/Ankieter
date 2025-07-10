@@ -1,15 +1,14 @@
-﻿@model SurveyAnswerWithUserViewModel
+﻿@model SurveyUsersViewModel
 
 <div class="text-center">
-    <h1 class="display-4">Lista odpowiedzi.</h1>
+    <h1 class="display-4">Lista użytkowników.</h1>
     <h1 class="display-4">Możesz je filtrować po wybranym filtrze</h1>
 
 
-    <form asp-action="Admin2" method="get">
+    <form asp-action="Admin3" method="get">
         <div class="form-group">
             <label for="filter">Wybierz filtr:</label>
             <select name="filter" class="form-control" id="filter">
-                <option value="QuestionId">Pytanie (QuestionId)</option>
                 <option value="UserId">Użytkownik (UserId)</option>
                 <option value="Age">Wiek</option>
                 <option value="Sex">Płeć</option>
@@ -27,53 +26,43 @@
 
 
     <div class=" row justify-content-center">
-        @if (Model.AnswersWithUserList == null)
+        @if (Model.UsersList == null)
         {
             <p>Brak danych — lista jest null</p>
         }
-        else if (!Model.AnswersWithUserList.Any())
+        else if (!Model.UsersList.Any())
         {
             <p>Lista pusta — brak wyników filtracji</p>
         }
         else
         {
-            <p>Znaleziono @Model.AnswersWithUserList.Count użytkownikow</p>
+            <p>Znaleziono @Model.UsersList.Count użytkownikow</p>
         }
 
         <table class="table">
             <thread>
                 <tr>
-                    <th scope="col">Numer Pytania</th>
-                    <th scope="col">Treść Pytania</th>
+                    <th scope="col">Id</th>
+                    <th scope="col">Name</th>
 
-                    <th scope="col">Odpowiedź</th>
-                    
-                    <th scope="col">TimeStamp</th>
-                   
+                    <th scope="col">Age</th>
+                    <th scope="col">Localization</th>
+
                 </tr>
 
             </thread>
             <tbody>
-                @foreach (var userAnswers in Model.AnswersWithUserList)
-                {
-
-
-                    <tr class="user-row">
-                        <td colspan="4">
-                            👤 <strong>User:</strong> @userAnswers.User.Name, @userAnswers.User.Age Lat, Lokalizacja: @userAnswers.User.Localization
-                        </td>
-                    </tr>
-
-                    @foreach (var answer in userAnswers.AnswersList)
+              
+                    @foreach (var User in Model.UsersList)
                     {
                         <tr>
-                            <td>@answer.QuestionId</td>
-                            <td>@answer.QuestionText</td>
-                            <td>@answer.Answer</td>
-                            <td>@answer.TimeStamp</td>
+                            <td>@User.Id</td>
+                            <td>@User.Name</td>
+                            <td>@User.Age</td>
+                            <td>@User.Localization</td>
                         </tr>
                     }
-                }
+                
             </tbody>
 
 
