@@ -12,6 +12,7 @@ namespace Ankieter.Models.ViewModels
         public List<SurveyUser> UsersList { get; set; } = new List<SurveyUser>();
 
         public SurveyUser User { get; set; } 
+
     }
 
 }

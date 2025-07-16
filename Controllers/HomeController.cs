@@ -2,6 +2,7 @@ using Ankieter.Models;
 using Ankieter.Models.ViewModels;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using System;
@@ -14,12 +15,12 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 // Do zrobienia :
-// - popraw walidacje dotyczaca danych demograficznych 
+// - popraw walidacje dotyczaca danych demograficznych - aktualnie hardcoded 100 miast // dodano ograniczniki wieku
 // - ekran logowania dla admina
 // - wyswietlaj odpowiedni sposob odpowiedzi dla danego typu pytania ( zmien sposob przechowywywania pytania w bazie dla multichoice - dodaj 4 opcje )
 
 // - przygotuj gotowe szablony pytañ - automatyczne wybór odpowiedniego zestawu pytañ (admin)
-// - przygotuj ekran wyswietlania odpowiedzi na pytania wraz z filtrem (admin)
+
 // - przygotuj ekran ukazujacy dane demograficzne respondentów (admin)
 // - eksport wyników do csv (admin)
 // - wyswietl postep w ankiecie
@@ -81,19 +82,43 @@ public class HomeController : Controller
     [HttpGet]
     public IActionResult StartSurvey()
     {
-        return View(new StartSurveyViewModel());
+        var model = new StartSurveyViewModel
+        {
+            Cities = GetTop100PolishCities().Select(c => new SelectListItem { Text = c, Value = c }).ToList()
+        };
+
+        
+        return View( model);
     }
 
     [HttpPost]
     public IActionResult StartSurvey(StartSurveyViewModel model)
     {
-        if (!ModelState.IsValid)
-            return View(model);
+        model.Cities = GetTop100PolishCities().Select(c => new SelectListItem
+        {
+            Text = c,
+            Value = c
+        }).ToList();
 
-        // Zapisz u¿ytkownika do bazy
+
+        if (!ModelState.IsValid)
+        {
+           
+            Console.WriteLine("modelstate not valid");
+            foreach (var modelState in ModelState)
+            {
+                foreach (var error in modelState.Value.Errors)
+                {
+                    Console.WriteLine($"B³¹d w {modelState.Key}: {error.ErrorMessage}");
+                }
+            }
+            return View(model);
+        }
+
+       
         int userId = SaveUserToDatabase(model.User);
 
-        // Przekieruj do pierwszego pytania, przekazuj¹c ID u¿ytkownika
+       
         return RedirectToAction("User", new { userId = userId, index = 0 });
     }
 
@@ -689,5 +714,25 @@ public class HomeController : Controller
         var model = GetFilteredUsers(filter, value);
         return View();
     }
+
+    public static List<string> GetTop100PolishCities()
+    {
+        return new List<string>
+    {
+        "Warszawa", "Kraków", "£ódŸ", "Wroc³aw", "Poznañ", "Gdañsk", "Szczecin", "Bydgoszcz", "Lublin", "Bia³ystok",
+        "Katowice", "Gdynia", "Czêstochowa", "Radom", "Toruñ", "Sosnowiec", "Kielce", "Rzeszów", "Gliwice", "Zabrze",
+        "Olsztyn", "Bielsko-Bia³a", "Bytom", "Zielona Góra", "Rybnik", "Ruda Œl¹ska", "Opole", "Tychy", "Gorzów Wielkopolski", "Elbl¹g",
+        "P³ock", "D¹browa Górnicza", "Wa³brzych", "W³oc³awek", "Tarnów", "Chorzów", "Koszalin", "Kalisz", "Legnica", "Grudzi¹dz",
+        "S³upsk", "Jaworzno", "Jastrzêbie-Zdrój", "Nowy S¹cz", "Jelenia Góra", "Konin", "Piotrków Trybunalski", "Inowroc³aw", "Lubin", "Ostro³êka",
+        "Suwa³ki", "Gniezno", "Stalowa Wola", "G³ogów", "Pabianice", "Siemianowice Œl¹skie", "Leszno", "Zamoœæ", "Tomaszów Mazowiecki", "Przemyœl",
+        "Stargard", "Mys³owice", "Che³m", "Piekary Œl¹skie", "Pi³a", "Otwock", "Oœwiêcim", "E³k", "Œwidnica", "Bêdzin",
+        "Zgierz", "Rumia", "Tarnowskie Góry", "¯ory", "Legionowo", "Olkusz", "Wejherowo", "Tczew", "Starachowice", "Œwiêtoch³owice",
+        "Tarnobrzeg", "Skierniewice", "Ko³obrzeg", "Nowy Dwór Mazowiecki", "Be³chatów", "Pu³awy", "£om¿a", "Œwidnik", "Sanok", "Mielec",
+        "Kutno", "Bochnia", "Skar¿ysko-Kamienna", "Kwidzyn", "Jaros³aw", "Chojnice", "Wodzis³aw Œl¹ski", "Police", "Ciechanów", "Kêdzierzyn-KoŸle"
+    };
+    }
+
+   
+
 
 }
